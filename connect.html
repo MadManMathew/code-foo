@@ -1,0 +1,434 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+	<head>
+
+		<script type="text/javascript" src="js/jquery-1.7.2.min.js">
+</script>
+		<script type="text/javascript">
+
+
+		var isRedTurn = true;
+		var gameBoardArray = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]];
+		var gameBoardCount = [0,0,0,0,0,0,0,0];
+		var lastI = 0; 
+		var lastJ = 0;
+		var winingPeiceR = 0;
+		var winningStopOpp = 0;
+		var winingPositions;
+
+
+		function Position (i,j)
+		{
+		this.i = i;
+		this.j = j;
+		}
+
+
+		function HeuristicResult (continuousCount,blockedCount,posArray)
+		{
+		this.continuousCount = continuousCount;
+		this.blockedCount = blockedCount;
+		this.posArray = posArray
+		this.getPosArrayLength = function ()
+		{
+			return this.posArray.length;
+		};
+		this.getH = function(){
+			var l = this.posArray.length;
+			if(blockedCount<4)
+				return 0;
+			if(l >= 3)
+				return l * 8;
+			else if (l == 2)
+				return l * 4;
+			else
+				return 0;
+		};
+		}
+
+		function circleAnimation()
+		{
+		if(winingPeiceR > 50)
+			return;
+
+		$(winingPositions).each(function (i,pos)
+		{   
+			var iframeContents = $('#gamecell'+ pos.i + '_' + pos.j).find('iframe').contents();
+			var rStr = $(iframeContents).find('circle').attr("r");
+			var oppStr =  $(iframeContents).find('stop[id="radStop"]').css("stop-opacity");
+			var currentR = parseFloat(rStr.replace('%',''));
+			winingPeiceR = currentR + .5;   
+			var currentOpp = parseFloat(oppStr);
+			winningStopOpp = currentOpp + .05;
+			 $(iframeContents).find('circle').attr("r",winingPeiceR + "%");
+			 $(iframeContents).find('stop[id="radStop"]').css("stop-opacity",winningStopOpp.toString());
+		});
+
+		window.setTimeout("circleAnimation()",50);
+		}
+
+		function allowDrop(ev)
+		{
+		ev.preventDefault();
+		}
+
+		function drag(ev)
+		{
+		ev.dataTransfer.setData("kind",ev.target.id);
+		}
+
+		function toggleTurn()
+		{
+		if(isRedTurn == true)
+		{
+			isRedTurn =false;
+			$("#blackpeice").css("visibility", "visible");
+			$("#redpeice").css("visibility", "hidden");
+		}
+		else
+		{
+			isRedTurn =true;
+			$("#blackpeice").css("visibility", "hidden");
+			$("#redpeice").css("visibility", "visible");
+		}
+		}
+
+		function testCell( i, j , gameBoard)  
+		{
+		var testResult = testDirection(i,j,1,0,gameBoard);
+		if(testResult == null)
+			testResult = testDirection(i,j,0,1,gameBoard);
+		if(testResult == null)
+			testResult = testDirection(i,j,1,1,gameBoard);
+		if(testResult == null)
+			testResult = testDirection(i,j,1,-1,gameBoard);
+
+		return testResult;
+
+		}
+
+		function testDirection(i,j,x,y,gameBoard)
+		{
+		var result = getDirectionLength(i,j,x,y,gameBoard);
+		if(result.length >= 4)
+			return result;
+
+		return null;
+		}
+
+		function getDirectionLength(i,j,x,y,gameBoard)
+		{
+		var currentPeiceType = gameBoard[i][j];
+		var result = [new Position(i,j)];
+
+		var xLeft = j-x;
+		var xRight = j+x;
+		var yUp = i+y;
+		var yDown = i-y;
+
+		while(yUp > -1 && xRight > -1 && yUp < 7 && xRight < 7  && gameBoard[yUp][xRight] == currentPeiceType)
+		{
+			result.push(new Position(yUp,xRight));
+			xRight+=x;
+			yUp+=y;
+		}
+
+		while(yDown > -1 && xLeft > -1 &&  yDown < 7 && xLeft < 7 && gameBoard[yDown][xLeft] == currentPeiceType)
+		{
+			result.push(new Position(yDown,xLeft));
+			xLeft-=x;
+			yDown-=y;
+		}
+		return result;
+		}
+
+		function getHeuristicResult(i,j,x,y,gameBoard)
+		{
+		var currentPeiceType = gameBoard[i][j];
+		var result = [new Position(i,j)];
+		var continuousCount = 1;
+		var blockedCount = 1;
+
+		var xLeft = j-x;
+		var xRight = j+x;
+		var yUp = i+y;
+		var yDown = i-y;
+
+		var continuous = true;
+		while(yUp > -1 && xRight > -1 && yUp < 7 && xRight < 7  && 
+				(gameBoard[yUp][xRight] == currentPeiceType || (gameBoard[yUp][xRight] == 0 && Math.abs(yUp - i) < 4 && Math.abs(xRight - j) < 4) ))
+		{
+			if(gameBoard[yUp][xRight] == currentPeiceType)
+				result.push(new Position(yUp,xRight));
+			else
+				continuous = false;
+				
+			if(continuous == true)
+				continuousCount++;
+			blockedCount++;
+			xRight+=x;
+			yUp+=y;
+		}
+
+		continuous = true;
+		while(yDown > -1 && xLeft > -1 &&  yDown < 7 && xLeft < 7 && 
+				(gameBoard[yDown][xLeft] == currentPeiceType || (gameBoard[yDown][xLeft] == 0 && Math.abs(yDown - i) < 4 && Math.abs(xLeft - j) < 4) ))
+		{
+			if(gameBoard[yDown][xLeft] == currentPeiceType)
+				result.push(new Position(yDown,xLeft));
+			else
+				continuous = false;
+
+			if(continuous == true)
+				continuousCount++;
+				
+			blockedCount++;
+			xLeft-=x;
+			yDown-=y;
+		}
+
+		return new HeuristicResult(continuousCount,blockedCount,result);
+		}
+
+		function useAI()
+		{
+		var j = 0;
+		var max = 0;
+		var pickedPos = 0;
+		var peiceType = 2;//black
+		for(j = 0; j < 7; j ++)
+		{
+			if(gameBoardCount[j] < 7)
+			var h = getHuristicScore(gameBoardCount[j], j ,gameBoardArray);
+			if(max < h)
+			{
+				max = h;
+				pickedPos = j;
+			}
+		}
+		placePeice(peiceType,gameBoardCount[pickedPos],pickedPos);
+		}
+
+		function getHuristicScore(i, j , gameBoard)
+		{       
+		var offensive =  getRowHuristics(2, i, j , gameBoard);
+		var defensive =  getRowHuristics(1, i, j , gameBoard);
+
+		console.log('offensive:'+offensive + 'defensive:'+defensive);
+		return offensive * .6 + defensive * .4;
+		}
+
+		function getRowHuristics(peiceType, i, j , gameBoard)  
+		{
+
+		var hScore = 0;
+		var newGameBoare = [];
+		var x = 0;  
+		//For Offensive Score
+		for(x = 0; x < 7; x ++)
+			newGameBoare[x] = gameBoardArray[x].slice(0);
+			
+		newGameBoare[i][j] = peiceType;
+			
+		var countUpDown = getHeuristicResult(i,j,1,0,newGameBoare);
+		var countLeftRight = getHeuristicResult(i,j,0,1,newGameBoare);
+		var countRightDown = getHeuristicResult(i,j,1,1,newGameBoare);
+		var countRightUp = getHeuristicResult(i,j,1,-1,newGameBoare);
+
+
+		//50 is game over heuristic score
+		if(countUpDown.continuousCount >= 4 || countLeftRight.continuousCount >= 4 || 
+			countRightDown.continuousCount >= 4 || countRightUp.continuousCount >= 4)
+			return 100;
+
+		hScore+=countUpDown.getH();
+		hScore+=countLeftRight.getH();
+		hScore+=countRightDown.getH();
+		hScore+=countRightUp.getH();
+
+		if(j<4)
+			hScore+=j;
+		else
+			hScore+=(6-j);
+		return hScore;  
+		}
+
+
+		function drop(ev)
+		{
+		var data=ev.dataTransfer.getData("kind");
+		var targetCell = ev.target.id != '' ? ev.target.id : $(ev.target).parent().attr('id');
+		var i = 0;
+		var j = 0;
+		var peiceType = 0;
+		if(data == "blackpeice")
+			peiceType = 2;
+		else if(data == "redpeice")
+			peiceType = 1;
+			
+		j = parseInt(targetCell.substring(targetCell.length-1,targetCell.length));
+		i = gameBoardCount[j];
+		placePeice(peiceType,i,j);
+
+		ev.preventDefault();
+
+
+		}
+
+		function placePeice(peiceType,i,j)
+		{
+		if(i > 5)
+		{
+			alert("full");
+			$('#placecell'+ j).removeAttr("ondrop");
+			$('#placecell'+ j).removeAttr("ondragover");
+			$('#placecell'+ j).children().css("visibility", "hidden");
+
+		}
+		gameBoardCount[j]++;
+		var svgStr = '<iframe type="image/svg+xml" onload="afterPlaced()"  class="gamepeice"  src="assets/' + (peiceType==2?'black':'red') + '.svg"><\/iframe>';
+		$('#gamecell'+ i + '_' + j).append(svgStr);
+		gameBoardArray[i][j]=peiceType;
+
+		lastI = i;
+		lastJ = j;
+
+
+
+		}
+
+		function afterPlaced()
+		{
+			toggleTurn();
+			resize_template();
+			var testResult = testCell(lastI,lastJ,gameBoardArray);
+			if(testResult != null)
+			{
+				winingPositions = testResult;
+				circleAnimation();
+				//alert("WIN");
+			}
+		}
+
+
+		function on_doc_ready()
+		{
+		var i,j = 0;
+		for(i = 7; i >= 0; i--)
+		{
+			$('#gametable').append('<tr id="gamerow'+ i + '" class="gamerow"><\/tr>');
+			
+			for(j = 0; j < 7; j++)
+				{
+					if(i==7)
+					{
+						$('#gamerow'+ i).append('<td id="placecell'+ j + '" class="placecell" ondrop="drop(event)" ondragover="allowDrop(event)">\
+								<img class="downarrow" draggable="false" src="assets/downArrow.svg"><\/img>\
+							<\/td>');
+					}
+					else
+					{
+						$('#gamerow'+ i).append('<td id="gamecell'+ i + '_' + j + '" class="gamecell" >\
+							<\/td>');
+					}
+				}
+		}
+
+		   resize_template();
+		}
+
+		function resize_template()
+		{
+			var windowHeight = $(window).height()*.8;
+			
+			$(".gamecell, .gameslot, .placecell").height(windowHeight*.12);  
+			
+			$(".gamepeice").height(windowHeight*.11);
+			$(".downarrow").height(windowHeight*.08);
+			
+		}                                     
+		$(document).ready(on_doc_ready);
+		$(window).resize(resize_template);                          
+		</script>
+		<style type="text/css">
+
+		.gamecell
+		{
+
+		box-sizing: border-box;
+		display: inline-block;
+		border:2px solid;
+		width:14%;
+		padding:0px;
+
+		}
+
+		.placecell
+		{
+		box-sizing: border-box;
+		display: inline-block;
+		border:none;
+		width:14%;
+		padding:15px;
+
+		}
+
+		.downarrow
+		{
+		box-sizing: border-box;
+		display: inline-block;
+		width:100%;
+		border: none;
+
+		}
+
+		.gamepeice
+		{
+		box-sizing: border-box;
+		display: inline-block;
+		width:100%;
+		border: none;
+
+		}
+		.gameslot
+		{
+
+		width:40%;
+		border: none;
+		box-sizing: border-box;
+
+		}
+		</style>
+		<title></title>
+	</head>
+	<body>
+		<div>
+			<table width="100%">
+				<tr>
+					<td width="20%">
+						Red
+					</td>
+					<td width="20%">
+						<div id="redpeice"  draggable="true" ondragstart="drag(event)"  class="gameslot">
+							<img id="redpeice" src="assets/red.svg" name="redpeice">
+						</div>	
+					</td>
+					<td width="20%">
+						Black
+					</td>
+					<td width="20%">			
+						<div id="blackpeice"  draggable="true" ondragstart="drag(event)" style="visibility:hidden;" class="gameslot">
+							<img id="blackpeice" src="assets/black.svg" name="blackpeice"> 
+						</div>
+					</td>
+					<td width="20%">
+						<a href="javascript:useAI();">Use AI</a>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div >
+			<table id="gametable" width="100%" style="padding:0px;" cellspacing="0"></table>
+		</div>
+	</body>
+</html>
