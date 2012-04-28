@@ -6,9 +6,11 @@ background: #515151;
 float: left;
 width: 25%;
 display: inline;
-background-color: #EEEEEE;
+background-color: #FFFFFF;
 height: inherit;
 box-sizing: border-box;
+-moz-box-sizing:border-box; /* Firefox */
+-webkit-box-sizing:border-box; /* Safari */
 margin-bottom: inherit;
 padding:2%;
 }
@@ -16,13 +18,14 @@ padding:2%;
 #mainContent {
 float: left;
 width: 75%;
-display: inline;
+display: inline-block;
 background-color: #EEEEEE;
 height: inherit;
 border-left: 2px solid;
 border-right: 2px solid;
 box-sizing: border-box;
-margin-bottom: inherit;
+-moz-box-sizing:border-box; /* Firefox */
+-webkit-box-sizing:border-box; /* Safari */margin-bottom: inherit;
 padding:2%;
 
 }
