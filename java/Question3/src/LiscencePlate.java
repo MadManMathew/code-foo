@@ -21,8 +21,8 @@ public class LiscencePlate
 		int afterRemainderReachedCount = 0;
 		boolean reachedRemainder = false;
 		
-		//Once over the remainder, try 1 extra charater combinations
-		while( afterRemainderReachedCount<2)
+		//Once over the remainder, try 2 extra charater combinations
+		while( afterRemainderReachedCount<3)
 		{	
 			//loop trough all combination of letters and numbers for x number of charaters
 			for(int i = 0; i <= numberOfCharacters; i ++)
