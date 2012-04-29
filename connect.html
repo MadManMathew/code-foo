@@ -15,7 +15,6 @@
 		var winingPeiceR = 0;
 		var winningStopOpp = 0;
 		var winingPositions;
-		var jScriptException = false;
 
 
 		function Position (i,j)
@@ -46,33 +45,23 @@
 				return 0;
 		};
 		}
-		
+
 		function circleAnimation()
 		{
-		if(winingPeiceR > 50 || jScriptException == true)
-		{
-			showWinningDialog();
+		if(winingPeiceR > 50)
 			return;
-		}
 
 		$(winingPositions).each(function (i,pos)
 		{   
-			try
-			{
-				var iframeContents = $('#gamecell'+ pos.i + '_' + pos.j).find('iframe').contents();
-				var rStr = $(iframeContents).find('circle').attr("r");
-				var oppStr =  $(iframeContents).find('stop[id="radStop"]').css("stop-opacity");
-				var currentR = parseFloat(rStr.replace('%',''));
-				winingPeiceR = currentR + .5;   
-				var currentOpp = parseFloat(oppStr);
-				winningStopOpp = currentOpp + .05;
-				 $(iframeContents).find('circle').attr("r",winingPeiceR + "%");
-				 $(iframeContents).find('stop[id="radStop"]').css("stop-opacity",winningStopOpp.toString());
-			}
-			catch(e)
-			{
-				jScriptException = true;
-			}
+			var iframeContents = $('#gamecell'+ pos.i + '_' + pos.j).find('iframe').contents();
+			var rStr = $(iframeContents).find('circle').attr("r");
+			var oppStr =  $(iframeContents).find('stop[id="radStop"]').css("stop-opacity");
+			var currentR = parseFloat(rStr.replace('%',''));
+			winingPeiceR = currentR + .5;   
+			var currentOpp = parseFloat(oppStr);
+			winningStopOpp = currentOpp + .05;
+			 $(iframeContents).find('circle').attr("r",winingPeiceR + "%");
+			 $(iframeContents).find('stop[id="radStop"]').css("stop-opacity",winningStopOpp.toString());
 		});
 
 		window.setTimeout("circleAnimation()",50);
@@ -93,15 +82,14 @@
 		if(isRedTurn == true)
 		{
 			isRedTurn =false;
-			$("#blackpeice, #userAILink").css("visibility", "visible");
+			$("#blackpeice").css("visibility", "visible");
 			$("#redpeice").css("visibility", "hidden");
 		}
 		else
 		{
 			isRedTurn =true;
-			$("#blackpeice, #userAILink").css("visibility", "hidden");
+			$("#blackpeice").css("visibility", "hidden");
 			$("#redpeice").css("visibility", "visible");
-			
 		}
 		}
 
@@ -318,17 +306,10 @@
 			{
 				winingPositions = testResult;
 				circleAnimation();
-				
+				//alert("WIN");
 			}
 		}
 
-		function showWinningDialog()
-		{		
-				$("#winDialog").appendTo("#mainDiv");
-				$("#winDialog").append("<div id='winText' >" + (isRedTurn == false ? "Red":"Black") + " Wins <div style='font-size:22px'>Click to Restart</div></div>");
-				$("#winDialog").css('z-index','100');
-				$("#winText").css('background-color','rgba('+(isRedTurn == false ? "256,0,0":"0,0,0")+', 0.7)');
-		}
 
 		function on_doc_ready()
 		{
@@ -428,27 +409,6 @@
 		-webkit-box-sizing:border-box; /* Safari */
 
 		}
-		#winText
-		{
-			margin:auto;
-			font-size:100px;
-			text-align:center;
-			border-radius: 25px 25px 25px 25px;
-			border:solid;
-			margin-top:20%;
-			width:80%;
-			
-		}
-		#winDialog
-		{
-			z-index:-100;
-			position:absolute;
-			top:0%;
-			left:0%;
-			bottom:0%;
-			right:0%;
-			background-color:rgba(256, 256, 256, 0.6);
-		}
 		</style>
 		<title></title>
 	</head>
@@ -472,15 +432,14 @@
 							<img id="blackpeice" src="assets/black.svg" name="blackpeice"> 
 						</div>
 					</td>
-					<td width="20%" >
-						<a href="javascript:useAI();" style="visibility:hidden;" id="userAILink">Use AI</a>
+					<td width="20%">
+						<a href="javascript:useAI();">Use AI</a>
 					</td>
 				</tr>
 			</table>
 		</div>
-		<div id="mainDiv">
+		<div >
 			<table id="gametable" width="100%" style="padding:0px;" cellspacing="0"></table>
 		</div>
-		<div id="winDialog" onclick="javascript:location.reload()"></div>
 	</body>
 </html>
