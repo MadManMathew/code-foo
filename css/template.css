@@ -123,3 +123,8 @@ font-size: 130px;
 margin: auto;
 width: 90%;
 }
+.imageBorder
+{
+border: 5px groove #00B4FF;
+padding:3px;
+}
