@@ -466,7 +466,7 @@ function drop(ev)
     placePeice(peiceType, i, j);
 
     ev.preventDefault();
-	if($('input:#autoAI').attr("checked") == "checked")
+	if(peiceType == 1 && $('input:#autoAI').attr("checked") == "checked")
 		window.setTimeout("useAI2()", 500);
 
 }
