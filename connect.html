@@ -55,11 +55,12 @@ function GameNode(type,depth, board)
 }
 
 
-function HeuristicResult(continuousCount, blockedCount, posArray)
+function HeuristicResult(continuousCount, blockedCount, posArray,endsEmpty)
  {
     this.continuousCount = continuousCount;
     this.blockedCount = blockedCount;
     this.posArray = posArray
+    this.endsEmpty = endsEmpty;
     this.getPosArrayLength = function()
     {
         return this.posArray.length;
@@ -67,13 +68,17 @@ function HeuristicResult(continuousCount, blockedCount, posArray)
     this.getH = function() {
         var l = this.posArray.length;
         if (blockedCount < 4)
-        return 0;
+        	return 0;
         if (l >= 3)
-        return l * 8;
+		{
+			if(this.endsEmpty>=2)
+				return l*15;
+        	return l * 8;
+		}
         else if (l == 2)
-        return l * 4;
+        	return l * 4;
         else
-        return 0;
+        	return 0;
     };
 }
 
@@ -81,7 +86,7 @@ function circleAnimation()
  {
     if (winingPeiceR > 50 || jScriptException == true)
     {
-        showWinningDialog();
+        showWinningDialog(true);
         return;
     }
 
@@ -196,6 +201,8 @@ function getHeuristicResult(i, j, x, y, gameBoard)
     var yUp = i + y;
     var yDown = i - y;
 
+	var endsEmpty = 0;
+
     var continuous = true;
     while (yUp > -1 && xRight > -1 && yUp < 7 && xRight < 7 &&
     (gameBoard[yUp][xRight] == currentPeiceType || (gameBoard[yUp][xRight] == 0 && Math.abs(yUp - i) < 4 && Math.abs(xRight - j) < 4)))
@@ -203,7 +210,7 @@ function getHeuristicResult(i, j, x, y, gameBoard)
         if (gameBoard[yUp][xRight] == currentPeiceType)
         result.push(new Position(yUp, xRight));
         else
-        continuous = false;
+        	continuous = false;
 
         if (continuous == true)
         continuousCount++;
@@ -212,15 +219,17 @@ function getHeuristicResult(i, j, x, y, gameBoard)
         yUp += y;
     }
 
+	if(gameBoard[yUp-y][xRight-x] == 0 && yUp-y == getNextI(xRight-x,gameBoard))
+		endsEmpty++;
+
     continuous = true;
     while (yDown > -1 && xLeft > -1 && yDown < 7 && xLeft < 7 &&
     (gameBoard[yDown][xLeft] == currentPeiceType || (gameBoard[yDown][xLeft] == 0 && Math.abs(yDown - i) < 4 && Math.abs(xLeft - j) < 4)))
     {
         if (gameBoard[yDown][xLeft] == currentPeiceType)
         result.push(new Position(yDown, xLeft));
-        else
-        continuous = false;
-
+         else
+        	continuous = false;
         if (continuous == true)
         continuousCount++;
 
@@ -228,8 +237,10 @@ function getHeuristicResult(i, j, x, y, gameBoard)
         xLeft -= x;
         yDown -= y;
     }
-
-    return new HeuristicResult(continuousCount, blockedCount, result);
+	if(gameBoard[yDown+y][xLeft+x] == 0 && yDown+y == getNextI(xLeft+x,gameBoard))
+		endsEmpty++;
+		
+    return new HeuristicResult(continuousCount, blockedCount, result,endsEmpty);
 }
 
 function useAI()
@@ -263,7 +274,7 @@ function useAI2()
 	var l = 0;
 	for(l = 0; l < finalNodes.length; l++)
 	{
-		alert("Final:" + finalNodes[l].hTotal + ": " + finalNodes[l].j + "\n  "+finalNodes[l].printGameBoard());
+		//alert("Final:" + finalNodes[l].hTotal + ": " + finalNodes[l].j + "\n  "+finalNodes[l].printGameBoard());
 		if(top3Score.length<3)
 		{
 				top3Score.push(finalNodes[l]);
@@ -287,7 +298,7 @@ function useAI2()
 	}
 	var x = 0;
 	var chooseJ = -1;
-	var maxScore = 0;
+	var maxScore = -10000;
 	for(x = 0; x<top3Score.length; x++)
 	{
 		if(top3Score[x].hTotal>maxScore)
@@ -380,11 +391,12 @@ function bestThree(heur)
 function getNextI(j,gameBoard)
 {
 	var i = 0;
-	console.log(i+ "-"+j);
-	while(gameBoard[i][j]!=0 && i < 7)
+	while(i < 7 && gameBoard[i][j]!=0)
 	{
 		i++;
 	}
+	
+	console.log(i+ "-"+j);
 	return i;
 }
 
@@ -454,7 +466,8 @@ function drop(ev)
     placePeice(peiceType, i, j);
 
     ev.preventDefault();
-
+	if($('input:#autoAI').attr("checked") == "checked")
+		window.setTimeout("useAI2()", 500);
 
 }
 
@@ -462,7 +475,6 @@ function placePeice(peiceType, i, j)
  {
     if (i > 5)
     {
-        alert("full");
         $('#placecell' + j).removeAttr("ondrop");
         $('#placecell' + j).removeAttr("ondragover");
         $('#placecell' + j).children().css("visibility", "hidden");
@@ -475,9 +487,15 @@ function placePeice(peiceType, i, j)
 
     lastI = i;
     lastJ = j;
-
-
-
+	var rowFullCount = 0;
+	for(x = 0 ; x < 7; x++)
+	{
+		if(gameBoardCount[x] <7)
+			break;
+		if(x==6)
+			showWinningDialog(false);		
+	}
+	resize_template();
 }
 
 function afterPlaced()
@@ -493,12 +511,22 @@ function afterPlaced()
     }
 }
 
-function showWinningDialog()
+function showWinningDialog(isWin)
  {
     $("#winDialog").appendTo("#mainDiv");
-    $("#winDialog").append("<div id='winText' >" + (isRedTurn == false ? "Red": "Black") + " Wins <div style='font-size:22px'>Click to Restart</div></div>");
+	if(isWin ==  true)
+	{
+    	$("#winDialog").append("<div id='winText' >" + (isRedTurn == false ? "Red": "Black") + " Wins <div style='font-size:22px'>Click to Restart</div></div>");
+	    $("#winText").css('background-color', 'rgba(' + (isRedTurn == false ? "256,0,0": "0,0,0") + ', 0.7)');
+
+	}
+	else
+	{
+			$("#winDialog").append("<div id='winText' > Draw <div style='font-size:22px'>Click to Restart</div></div>");
+			$("#winText").css('background-color', 'rgba(100,100,100, 0.7)');
+		    
+	}
     $("#winDialog").css('z-index', '100');
-    $("#winText").css('background-color', 'rgba(' + (isRedTurn == false ? "256,0,0": "0,0,0") + ', 0.7)');
 }
 
 function on_doc_ready()
@@ -645,7 +673,8 @@ $(window).resize(resize_template);
 						</div>
 					</td>
 					<td width="20%" >
-						<a href="javascript:useAI2();" style="visibility:hidden;" id="userAILink">Use AI</a>
+						<button onclick="javascript:useAI2();" style="visibility:hidden;" id="userAILink">Use AI</button>
+						<input id="autoAI" type="checkbox">Auto</button>
 					</td>
 				</tr>
 			</table>
