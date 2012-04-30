@@ -18,7 +18,7 @@ function addTemplate()
 				</div>\
 			</div>\
 			<div id="menu">\
-				<table width="80%" style="margin:auto;text-align:center">\
+				<table width="80%" style="height:inherit;margin:auto;text-align:center">\
 					<tr id="menuTr">\
 					</tr>\
 				</table>\
